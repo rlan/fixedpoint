@@ -40,6 +40,31 @@ class prop(object):
       * Absolute value: z = x.abs()
       * Negation: z = -x 
     New representations, z, are derived based on full-precision arithmetic.
+    
+    Example: magnitude squared of a complex number, i.e., cx.real^2 + cx.imag^2
+    >>> import fixedpoint
+    >>> cx = fixedpoint.prop(10, 9, True)
+    >>> cx_sqr = cx.sqr()
+    >>> cx_sqr.format()
+    'us<19, 19>'
+    >>> cx_sum_sqr = cx_sqr + cx_sqr
+    >>> cx_sum_sqr.format()
+    'us<20, 20>'
+
+    Example: complex multiplication.
+    cx = a+bi
+    cy = c+di
+    cx*cy = (ac-bd)+(bc+ad)i
+    
+    >>> import fixedpoint
+    >>> cx = fixedpoint.prop(5, 4, True)
+    >>> cy = fixedpoint.prop(10, 9, True)
+    >>> mult = cx*cy
+    >>> mult.format()
+    '2s<15, 14>'
+    >>> result = mult + mult
+    >>> result.format()
+    '2s<16, 15>'
     """
 
     def __init__(self, word_length = 1, integer_length = 1, signed = False):
@@ -58,8 +83,13 @@ class prop(object):
         
     def format(self):
         """
-        Return a human readable string describing this object.
-        Example: us<1, 1> or 2s<10, 9>
+        @return: a human readable string describing this object.
+
+        >>> import fixedpoint
+        >>> fixedpoint.prop(4, 3, True).format()
+        '2s<4, 3>'
+        >>> fixedpoint.prop(3, 0, False).format()
+        'us<3, 0>'
         """
         
         msg = "<" + str(self.word_length) + ", " + str(self.integer_length) + ">"
@@ -67,16 +97,36 @@ class prop(object):
             return "2s" + msg
         else:
             return "us" + msg
-            
+        
     def max(self):
-        """Most positive value"""
+        """
+        @return: the most positive value.
+        
+        >>> import fixedpoint
+        >>> fixedpoint.prop(4,3,True).max()
+        7.0
+        >>> fixedpoint.prop(3,0,True).max()
+        0.75
+        >>> fixedpoint.prop(3,0,False).max()
+        0.875
+        """
         
         fractional_length = self.word_length - self.signed - self.integer_length
         x = 2 ** (self.word_length - self.signed) - 1
         return math.ldexp(x, int(-fractional_length))
 
     def min(self):
-        """Most negative value"""
+        """
+        @return: the most negative value or zero if unsigned.
+
+        >>> import fixedpoint
+        >>> fixedpoint.prop(4,3,True).min()
+        -8
+        >>> fixedpoint.prop(3,0,True).min()
+        -1
+        >>> fixedpoint.prop(3,0,False).min()
+        0
+        """
         
         if self.signed:
             return -2 ** self.integer_length
@@ -84,7 +134,17 @@ class prop(object):
             return 0
 
     def smallest(self):
-        """Smallest magnitude for this representation"""
+        """
+        @return: the smallest magnitude for this representation.
+
+        >>> import fixedpoint 
+        >>> fixedpoint.prop(4,3,True).smallest()
+        1
+        >>> fixedpoint.prop(3,0,True).smallest()
+        0.25
+        >>> fixedpoint.prop(3,0,False).smallest()
+        0.125
+        """
         
         fractional_length = self.word_length - self.signed - self.integer_length
         return 2 ** -fractional_length
@@ -120,7 +180,11 @@ class prop(object):
         
     
     def __abs__(self):
-        """Return the representation for f(x) = abs(x)"""
+        """
+        @return: the representation for f(x) = abs(x)
+        
+        todo doctest
+        """
         
         if self.signed:
             return prop(self.word_length, self.integer_length+1, False)
@@ -128,7 +192,23 @@ class prop(object):
             return self
 
     def __neg__(self):
-        """Return the representation for f(x) = -x"""
+        """
+        @return: the representation for f(x) = -x
+
+        >>> import fixedpoint 
+        >>> x = fixedpoint.prop(5, 5, False)
+        >>> x.format()
+        'us<5, 5>'
+        >>> nx = -x
+        >>> nx.format()
+        '2s<6, 5>'
+        >>> y = fixedpoint.prop(4, 4, True)
+        >>> y.format()
+        '2s<4, 4>'
+        >>> ny = -y
+        >>> ny.format()
+        '2s<5, 5>'
+        """
         
         if self.signed:
             return prop(self.word_length+1, self.integer_length+1, self.signed)
@@ -136,7 +216,21 @@ class prop(object):
             return prop(self.word_length+1, self.integer_length, True)
 
     def sqr(self):
-        """Return the representation for f(x) = x^2"""
+        """
+        @return: the representation for f(x) = x^2
+        
+        >>> import fixedpoint
+        >>> x = fixedpoint.prop(5, 5, False)
+        >>> sqr_x = x.sqr()
+        >>> sqr_x.format()
+        'us<10, 10>'
+        >>> nx = -x
+        >>> sqr_nx = nx.sqr()
+        >>> sqr_nx.format()
+        'us<11, 11>'
+
+        todo overload the "**" operator
+        """
 
         integer_length = 2 * self.integer_length
         if self.signed:
@@ -146,7 +240,21 @@ class prop(object):
         return prop(word_length, integer_length, False)
 
     def __add__(self, other):
-        """Return the representation for f(x, y) = x + y"""
+        """
+        @return: the representation for f(x, y) = x + y
+        
+        >>> import fixedpoint 
+        >>> x = fixedpoint.prop(5, 5, False)
+        >>> y = fixedpoint.prop(4, 4, False)
+        >>> z = x + y
+        >>> z.format()
+        'us<6, 6>'
+        >>> a = fixedpoint.prop(4, 3, True)
+        >>> b = fixedpoint.prop(3, 0, True)
+        >>> c = a + b
+        >>> c.format()
+        '2s<7, 4>'
+        """
 
         max_value = self.max() + other.max()
         min_value = self.min() + other.min()
@@ -158,7 +266,21 @@ class prop(object):
         return self._create_obj(max_value, min_value, fractional_length)
         
     def __sub__(self, other):
-        """Return the representation for f(x, y) = x - y"""
+        """
+        @return: the representation for f(x, y) = x - y
+        
+        >>> import fixedpoint 
+        >>> x = fixedpoint.prop(5, 5, False)
+        >>> y = fixedpoint.prop(4, 4, False)
+        >>> z = x - y
+        >>> z.format()
+        '2s<6, 5>'
+        >>> a = fixedpoint.prop(4, 3, True)
+        >>> b = fixedpoint.prop(3, 0, True)
+        >>> c = a - b
+        >>> c.format()
+        '2s<7, 4>'
+        """
 
         max_value = self.max() - other.min()
         min_value = self.min() - other.max()
@@ -171,10 +293,21 @@ class prop(object):
 
     def __mul__(self, other):
         """
-        Return the representation for f(x, y) = x * y
-        Use the sqr() method for squaring.
-        """
+        @return: the representation for f(x, y) = x * y.
+        @note: Use the sqr() method for squaring.
         
+        >>> import fixedpoint
+        >>> x = fixedpoint.prop(5, 5, False)
+        >>> y = fixedpoint.prop(4, 4, False)
+        >>> m = x * y
+        >>> m.format()
+        'us<9, 9>'
+        >>> a = fixedpoint.prop(4, 3, True)
+        >>> b = fixedpoint.prop(3, 0, True)
+        >>> c = a * b
+        >>> c.format()
+        '2s<7, 4>'
+        """
         max_value = max(self.max() * other.max(), self.min() * other.min())
         min_value = min(self.max() * other.min(), self.min() * other.max())
         
@@ -183,3 +316,8 @@ class prop(object):
         fractional_length = self_fl + other_fl
         
         return self._create_obj(max_value, min_value, fractional_length)
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
