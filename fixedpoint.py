@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import math
 
 
-class prop:
+class prop(object):
     """
     A class for propagation math of fixed-point representation.
     
