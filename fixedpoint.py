@@ -318,6 +318,93 @@ class prop(object):
         return self._create_obj(max_value, min_value, fractional_length)
 
 
+class q(object):
+    """
+    A fixed-point quantizer.
+    
+    Convert unsigned integer to floating-point by using the fixed-point format
+    given. See examples in float()
+    """
+    
+    def __init__(self, word_length = 1, integer_length = 1, signed = False):
+        """
+        Default object is one-bit (ie boolean).
+        @param word_length: in bits and includes sign bit.
+        @param integer_length: number of bits to the left of decimal point, but does not include the sign bit.
+        @param signed: False (default) if unsigned number system. True of signed.
+        """
+        
+        if word_length < 1:
+            raise ValueError("Word length must be >= 1")
+        
+        self.word_length = word_length
+        self.integer_length = integer_length
+        self.signed = signed
+
+    def float(self, uint_val):
+        """
+        Converts unsigned integer (raw) to floating-point value using fixed-point format of the current object.
+        @param uint_val: Unsigned int to convert.
+        @return: A floating-point value.
+
+        Examples:
+        >>> import fixedpoint
+        >>> q=fixedpoint.q(4,2,False)
+        >>> for i in range(0,16): print(i, q.float(i))
+        0 0.0
+        1 0.25
+        2 0.5
+        3 0.75
+        4 1.0
+        5 1.25
+        6 1.5
+        7 1.75
+        8 2.0
+        9 2.25
+        10 2.5
+        11 2.75
+        12 3.0
+        13 3.25
+        14 3.5
+        15 3.75
+        
+        >>> import fixedpoint
+        >>> q=fixedpoint.q(4,2,True)
+        >>> for i in range(0,16): print(i, q.float(i))
+        0 0.0
+        1 0.5
+        2 1.0
+        3 1.5
+        4 2.0
+        5 2.5
+        6 3.0
+        7 3.5
+        8 -4.0
+        9 -3.5
+        10 -3.0
+        11 -2.5
+        12 -2.0
+        13 -1.5
+        14 -1.0
+        15 -0.5
+        """
+        
+        if uint_val < 0:
+            raise ValueError("Value must be non-negative!")
+        if uint_val > 2**self.word_length - 1:
+            raise ValueError("Value must be <= "+str(2**self.word_length-1))
+        
+        if self.signed and (uint_val >= 2**(self.word_length-1)):
+            uint_val = uint_val - 2**self.word_length
+            
+        if self.signed:
+            fractional = self.word_length - 1 - self.integer_length
+        else:
+            fractional = self.word_length - self.integer_length
+            
+        return uint_val * (2**(-fractional))
+        
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
