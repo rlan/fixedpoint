@@ -1,4 +1,4 @@
-This Python project contains tools for working with fixed-point data type.
+This Python 3.x project contains tools for working with fixed-point data type.
 
 	* An object for propagation math of fixed-point representation.
 	* An object for conversion of an unsigned integer to floating-point using
